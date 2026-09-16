@@ -1,0 +1,6 @@
+terminate called after throwing an instance of 'std::bad_alloc'
+  what():  std::bad_alloc
+./compare_gapbs.sh: line 109: 189449 Aborted                 "$bin" "${args[@]}"
+real 0.08
+user 0.00
+sys 0.07

@@ -1,0 +1,20 @@
+Trial Time:          0.33563
+Trial Time:          0.33407
+Trial Time:          0.33465
+Trial Time:          0.33412
+Trial Time:          0.33510
+Trial Time:          0.33849
+Trial Time:          0.33568
+Trial Time:          0.33317
+Trial Time:          0.33609
+Trial Time:          0.34242
+Trial Time:          0.33604
+Trial Time:          0.34073
+Trial Time:          0.33617
+Trial Time:          0.33650
+Trial Time:          0.33574
+Trial Time:          0.33442
+Average Time:        0.33619
+real 5.84
+user 5.25
+sys 0.58

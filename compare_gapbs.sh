@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+# Interleaved GAPBS comparison across the three CHONK configs.
+#
+#   clang-plain    + jemalloc-og   (baseline)
+#   clang-plainje  + jemalloc      (chonk no analysis)
+#   clang-chonk    + jemalloc      (chonk)
+#
+# Times come from GAPBS "Average Time" (kernel only), not wall-clock load.
+# Graphs are shared serialized .sg/.wsg files under $RESULTS_DIR/graphs/.
+#
+# Usage:
+#   ./compare_gapbs.sh
+#   GRAPHS="kron22" NTHREADS=16 RUNS=5 ./compare_gapbs.sh
+#   GRAPHS="kron10" KERNELS="bfs pr" RUNS=1 WARMUP=0 ./compare_gapbs.sh
+#   START=6 RUNS=10 WARMUP=0 ./compare_gapbs.sh   # append more timed runs
+set -euo pipefail
+
+GAPBS_DIR="${GAPBS_DIR:-$HOME/gapbs}"
+RESULTS_DIR="${RESULTS_DIR:-$HOME/gapbs-results}"
+MACHINE="${MACHINE:-h0}"
+GRAPHS="${GRAPHS:-kron22 urand22}"
+KERNELS="${KERNELS:-bfs cc pr bc sssp tc}"
+NTHREADS="${NTHREADS:-16}"
+WARMUP="${WARMUP:-1}"
+RUNS="${RUNS:-5}"
+START="${START:-1}"
+CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk}"
+TAGS="${TAGS:-plain plainje chonk}"
+GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
+
+mkdir -p "$RESULTS_DIR"
+END=$((START + RUNS - 1))
+read -r -a CONFIG_ARR <<<"$CONFIGS"
+read -r -a TAG_ARR <<<"$TAGS"
+if [[ ${#CONFIG_ARR[@]} -ne ${#TAG_ARR[@]} ]]; then
+  echo "CONFIGS and TAGS must have the same number of entries" >&2
+  exit 1
+fi
+
+die() { echo "error: $*" >&2; exit 1; }
+
+parse_graph() {
+  local g="$1"
+  if [[ "$g" =~ ^(kron|urand)([0-9]+)$ ]]; then
+    echo "${BASH_REMATCH[1]} ${BASH_REMATCH[2]}"
+  else
+    die "unknown graph '$g' (expected kronN or urandN)"
+  fi
+}
+
+ensure_graphs() {
+  local conv="" tag
+  for tag in "${TAG_ARR[@]}"; do
+    if [[ -x "$RESULTS_DIR/bin/$tag/converter" ]]; then
+      conv="$RESULTS_DIR/bin/$tag/converter"
+      break
+    fi
+  done
+  [[ -n "$conv" ]] || die "no converter in $RESULTS_DIR/bin/<tag>/; run ./build_gapbs.sh first"
+  mkdir -p "$GRAPH_DIR"
+  local g kind scale
+  for g in $GRAPHS; do
+    read -r kind scale <<<"$(parse_graph "$g")"
+    local gen
+    if [[ "$kind" == kron ]]; then
+      gen=(-g "$scale" -k 16)
+    else
+      gen=(-u "$scale" -k 16)
+    fi
+    if [[ ! -f "$GRAPH_DIR/$g.sg" ]]; then
+      echo "==== generate $g.sg ===="
+      "$conv" "${gen[@]}" -b "$GRAPH_DIR/$g.sg"
+    fi
+    if [[ ! -f "$GRAPH_DIR/$g.wsg" ]]; then
+      echo "==== generate $g.wsg ===="
+      "$conv" "${gen[@]}" -w -b "$GRAPH_DIR/$g.wsg"
+    fi
+    ln -sfn "$g.sg" "$GRAPH_DIR/${g}U.sg"
+  done
+}
+
+kernel_args() {
+  local kernel="$1" graph="$2"
+  case "$kernel" in
+    bfs)  echo -f "$GRAPH_DIR/$graph.sg" -n64 ;;
+    cc|cc_sv) echo -f "$GRAPH_DIR/$graph.sg" -n16 ;;
+    pr|pr_spmv) echo -f "$GRAPH_DIR/$graph.sg" -i1000 -t1e-4 -n16 ;;
+    bc)   echo -f "$GRAPH_DIR/$graph.sg" -i4 -n16 ;;
+    sssp) echo -f "$GRAPH_DIR/$graph.wsg" -n64 -d2 ;;
+    tc)   echo -f "$GRAPH_DIR/${graph}U.sg" -n3 ;;
+    *)    die "no args for kernel '$kernel'" ;;
+  esac
+}
+
+parse_average() {
+  awk '/^Average Time:/ { t=$NF } END { if (t != "") print t }' "$1"
+}
+
+crash_note() {
+  if grep -Eiq 'Segmentation fault|Aborted|core dumped|bus error|Illegal instruction' "$1"; then
+    echo crash
+  elif ! grep -q '^Average Time:' "$1"; then
+    echo no_time
+  else
+    echo ok
+  fi
+}
+
+run_one() {
+  local config="$1" kernel="$2" graph="$3" tag="$4" log="$5" run="$6"
+  local bin="$RESULTS_DIR/bin/$tag/$kernel"
+  [[ -x "$bin" ]] || die "missing $bin; run ./build_gapbs.sh"
+  local -a args
+  read -r -a args <<<"$(kernel_args "$kernel" "$graph")"
+  export OMP_NUM_THREADS="$NTHREADS"
+  # Keep GAPBS stdout/stderr and bash `time -p` (real/user/sys) in the log.
+  { time -p "$bin" "${args[@]}"; } >"$log" 2>&1 || true
+  local secs status
+  secs=$(parse_average "$log")
+  status=$(crash_note "$log")
+  echo "$config,$kernel,$graph,$NTHREADS,$run,${secs:-},$status"
+}
+
+ensure_graphs
+
+for graph in $GRAPHS; do
+  local_csv="${COMPARE_CSV:-$RESULTS_DIR/gapbs.${graph}.t${NTHREADS}.compare.csv}"
+  if [[ ! -f "$local_csv" ]]; then
+    echo "config,app,input,threads,run,time_s,status" >"$local_csv"
+  fi
+  for kernel in $KERNELS; do
+    app_dir="$RESULTS_DIR/$kernel/$MACHINE"
+    mkdir -p "$app_dir"
+    if [[ "$WARMUP" -gt 0 ]]; then
+      echo "==== $kernel $graph warmup ===="
+      for ((i = 1; i <= WARMUP; i++)); do
+        for idx in "${!CONFIG_ARR[@]}"; do
+          run_one "${CONFIG_ARR[$idx]}" "$kernel" "$graph" "${TAG_ARR[$idx]}" \
+            "$app_dir/${kernel}.${graph}.t${NTHREADS}.${TAG_ARR[$idx]}.warmup${i}.txt" \
+            "warmup$i" >/dev/null
+        done
+      done
+    fi
+    for ((i = START; i <= END; i++)); do
+      for idx in "${!CONFIG_ARR[@]}"; do
+        cfg="${CONFIG_ARR[$idx]}"
+        name="${TAG_ARR[$idx]}"
+        log="$app_dir/${kernel}.${graph}.t${NTHREADS}.${name}.r${i}.txt"
+        echo "run $kernel $graph $name $i (through $END) -> $log"
+        run_one "$cfg" "$kernel" "$graph" "$name" "$log" "$i" | tee -a "$local_csv"
+      done
+    done
+  done
+  echo
+  echo "results -> $local_csv"
+  column -t -s, "$local_csv" || true
+done

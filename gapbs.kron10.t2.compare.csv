@@ -1,0 +1,2 @@
+config,app,input,threads,run,time_s,status
+clang-plain,bfs,kron10,2,1,0.00003,ok

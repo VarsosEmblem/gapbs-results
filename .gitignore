@@ -1,0 +1,12 @@
+# Machine-local build products (rpath-linked; rebuild on each host)
+bin/
+wrappers/
+
+# Serialized graphs are 0.5–1G each (GitHub file limit is 100M).
+# compare_gapbs.sh generates them on first run.
+graphs/
+graphs-out/
+
+__pycache__/
+*.pyc
+.DS_Store
