@@ -1,0 +1,22 @@
+Read Time:           0.31187
+Graph has 4194302 nodes and 64155725 undirected edges for degree: 15
+Trial Time:          0.69055
+Trial Time:          0.75981
+Trial Time:          0.69839
+Trial Time:          0.65059
+Trial Time:          0.68100
+Trial Time:          0.85715
+Trial Time:          0.72657
+Trial Time:          0.85302
+Trial Time:          0.68473
+Trial Time:          0.77430
+Trial Time:          0.69224
+Trial Time:          0.69478
+Trial Time:          0.69013
+Trial Time:          0.71508
+Trial Time:          0.70001
+Trial Time:          0.79860
+Average Time:        0.72918
+real 11.99
+user 184.27
+sys 2.18
