@@ -1,0 +1,2 @@
+Read Time:           0.99712
+Graph has 16777212 nodes and 260376710 undirected edges for degree: 15
