@@ -13,9 +13,9 @@ set -euo pipefail
 
 GAPBS_DIR="${GAPBS_DIR:-$HOME/gapbs}"
 RESULTS_DIR="${RESULTS_DIR:-$HOME/gapbs-results}"
-LLVM_DIR="${LLVM_DIR:-$HOME/llvm-19-build}"
-GCC_INSTALL_DIR="${GCC_INSTALL_DIR:-/usr/lib/gcc/x86_64-linux-gnu/13}"
-JEMALLOC_OG="${JEMALLOC_OG:-$HOME/jemalloc-og}"
+LLVM_DIR="${LLVM_DIR:-$HOME/llvm-build}"
+GCC_INSTALL_DIR="${GCC_INSTALL_DIR:-/vast/projects/opt/rhel8/x86_64/gcc/13.1.0/bin/../lib/gcc/x86_64-pc-linux-gnu/13.1.0/}"
+JEMALLOC_OG="${JEMALLOC_OG:-$HOME/jemalloc-5.3.0}"
 JEMALLOC="${JEMALLOC:-$HOME/jemalloc}"
 # Clang 19 has no matching libomp in llvm-19-build; PARSEC uses libgomp.
 OPENMP="${OPENMP:-libgomp}"
