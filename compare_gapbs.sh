@@ -129,7 +129,15 @@ for graph in $GRAPHS; do
     echo "config,app,input,threads,run,time_s,status" >"$local_csv"
   fi
   for kernel in $KERNELS; do
-    app_dir="$RESULTS_DIR/$kernel/$MACHINE"
+    # cn902 OpenMP logs after the 2026-09-17 pinning advice live under pinned/.
+    # Serial + t2–t16 kron22 are under nonpinned/. Override with RESULT_SUBDIR.
+    if [[ "$MACHINE" == "cn902" ]]; then
+      app_dir="$RESULTS_DIR/$kernel/$MACHINE/${RESULT_SUBDIR:-pinned}"
+    elif [[ -n "${RESULT_SUBDIR:-}" ]]; then
+      app_dir="$RESULTS_DIR/$kernel/$MACHINE/$RESULT_SUBDIR"
+    else
+      app_dir="$RESULTS_DIR/$kernel/$MACHINE"
+    fi
     mkdir -p "$app_dir"
     if [[ "$WARMUP" -gt 0 ]]; then
       echo "==== $kernel $graph warmup ===="
