@@ -15,6 +15,7 @@ GAPBS_DIR="${GAPBS_DIR:-$HOME/gapbs}"
 RESULTS_DIR="${RESULTS_DIR:-$HOME/gapbs-results}"
 LLVM_DIR="${LLVM_DIR:-$HOME/llvm-build}"
 GCC_INSTALL_DIR="${GCC_INSTALL_DIR:-/vast/projects/opt/rhel8/x86_64/gcc/13.1.0/bin/../lib/gcc/x86_64-pc-linux-gnu/13.1.0/}"
+STDCXX_LIB="/vast/projects/opt/rhel8/x86_64/gcc/13.1.0/lib64"
 JEMALLOC_OG="${JEMALLOC_OG:-$HOME/jemalloc-5.3.0}"
 JEMALLOC="${JEMALLOC:-$HOME/jemalloc}"
 # Clang 19 has no matching libomp in llvm-19-build; PARSEC uses libgomp.
@@ -44,6 +45,9 @@ write_wrapper() {
   {
     echo "#!/bin/sh"
     echo "exec \"$clang\" --gcc-install-dir=\"$GCC_INSTALL_DIR\" $* \"\$@\" \\"
+    if [[ -n "$STDCXX_LIB" ]]; then
+      echo "  -L\"$STDCXX_LIB\" -Wl,-rpath,\"$STDCXX_LIB\" \\"
+    fi
     echo "  -L\"$je/lib\" -ljemalloc -Wl,-rpath,\"$je/lib\""
   } >"$out"
   chmod +x "$out"
