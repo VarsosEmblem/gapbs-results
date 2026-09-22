@@ -1,0 +1,4 @@
+config,app,input,threads,run,time_s,status
+clang-plain,bfs,kron10,1,1,0.00002,ok
+clang-plainje,bfs,kron10,1,1,0.00002,ok
+clang-chonk,bfs,kron10,1,1,0.00002,ok
