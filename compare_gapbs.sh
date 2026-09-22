@@ -12,7 +12,7 @@
 #   ./compare_gapbs.sh
 #   GRAPHS="kron22" NTHREADS=16 RUNS=5 ./compare_gapbs.sh
 #   GRAPHS="kron10" KERNELS="bfs pr" RUNS=1 WARMUP=0 ./compare_gapbs.sh
-#   START=6 RUNS=10 WARMUP=0 ./compare_gapbs.sh   # append more timed runs
+#   START=6 RUNS=10 WARMUP=0 ./compare_gapbs.sh   # request at least r6; script auto-skips old runs
 set -euo pipefail
 
 GAPBS_DIR="${GAPBS_DIR:-$HOME/gapbs}"
@@ -29,7 +29,6 @@ TAGS="${TAGS:-plain plainje chonk}"
 GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
 
 mkdir -p "$RESULTS_DIR"
-END=$((START + RUNS - 1))
 read -r -a CONFIG_ARR <<<"$CONFIGS"
 read -r -a TAG_ARR <<<"$TAGS"
 if [[ ${#CONFIG_ARR[@]} -ne ${#TAG_ARR[@]} ]]; then
@@ -121,6 +120,40 @@ run_one() {
   echo "$config,$kernel,$graph,$NTHREADS,$run,${secs:-},$status"
 }
 
+max_existing_run() {
+  local app_dir="$1" kernel="$2" graph="$3"
+  local max_run=0 path base run
+  shopt -s nullglob
+  for tag in "${TAG_ARR[@]}"; do
+    for path in "$app_dir/${kernel}.${graph}.t${NTHREADS}.${tag}.r"*.txt; do
+      base="${path##*/}"
+      if [[ "$base" =~ \.r([0-9]+)\.txt$ ]]; then
+        run="${BASH_REMATCH[1]}"
+        (( run > max_run )) && max_run="$run"
+      fi
+    done
+  done
+  shopt -u nullglob
+  echo "$max_run"
+}
+
+max_existing_warmup() {
+  local app_dir="$1" kernel="$2" graph="$3"
+  local max_warmup=0 path base run
+  shopt -s nullglob
+  for tag in "${TAG_ARR[@]}"; do
+    for path in "$app_dir/${kernel}.${graph}.t${NTHREADS}.${tag}.warmup"*.txt; do
+      base="${path##*/}"
+      if [[ "$base" =~ \.warmup([0-9]+)\.txt$ ]]; then
+        run="${BASH_REMATCH[1]}"
+        (( run > max_warmup )) && max_warmup="$run"
+      fi
+    done
+  done
+  shopt -u nullglob
+  echo "$max_warmup"
+}
+
 ensure_graphs
 
 for graph in $GRAPHS; do
@@ -139,9 +172,20 @@ for graph in $GRAPHS; do
       app_dir="$RESULTS_DIR/$kernel/$MACHINE"
     fi
     mkdir -p "$app_dir"
+    existing_warmup=$(max_existing_warmup "$app_dir" "$kernel" "$graph")
+    warmup_start=$((existing_warmup + 1))
+    existing_run=$(max_existing_run "$app_dir" "$kernel" "$graph")
+    run_start="$START"
+    if (( existing_run >= run_start )); then
+      run_start=$((existing_run + 1))
+    fi
+    run_end=$((run_start + RUNS - 1))
+    if (( WARMUP > 0 || existing_run > 0 )); then
+      echo "$kernel $graph t$NTHREADS: warmup$warmup_start, r$run_start"
+    fi
     if [[ "$WARMUP" -gt 0 ]]; then
       echo "==== $kernel $graph warmup ===="
-      for ((i = 1; i <= WARMUP; i++)); do
+      for ((i = warmup_start; i < warmup_start + WARMUP; i++)); do
         for idx in "${!CONFIG_ARR[@]}"; do
           run_one "${CONFIG_ARR[$idx]}" "$kernel" "$graph" "${TAG_ARR[$idx]}" \
             "$app_dir/${kernel}.${graph}.t${NTHREADS}.${TAG_ARR[$idx]}.warmup${i}.txt" \
@@ -149,12 +193,12 @@ for graph in $GRAPHS; do
         done
       done
     fi
-    for ((i = START; i <= END; i++)); do
+    for ((i = run_start; i <= run_end; i++)); do
       for idx in "${!CONFIG_ARR[@]}"; do
         cfg="${CONFIG_ARR[$idx]}"
         name="${TAG_ARR[$idx]}"
         log="$app_dir/${kernel}.${graph}.t${NTHREADS}.${name}.r${i}.txt"
-        echo "run $kernel $graph $name $i (through $END) -> $log"
+        echo "run $kernel $graph $name $i (through $run_end) -> $log"
         run_one "$cfg" "$kernel" "$graph" "$name" "$log" "$i" | tee -a "$local_csv"
       done
     done
