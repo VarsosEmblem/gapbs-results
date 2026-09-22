@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Interleaved GAPBS comparison across the three CHONK configs.
+# Interleaved GAPBS comparison across the four CHONK configs.
 #
 #   clang-plain    + jemalloc-og   (baseline)
 #   clang-plainje  + jemalloc      (chonk no analysis)
 #   clang-chonk    + jemalloc      (chonk)
+#   clang-chonk-early + jemalloc   (modified analysis)
 #
 # Times come from GAPBS "Average Time" (kernel only), not wall-clock load.
 # Graphs are shared serialized .sg/.wsg files under $RESULTS_DIR/graphs/.
@@ -24,8 +25,8 @@ NTHREADS="${NTHREADS:-16}"
 WARMUP="${WARMUP:-1}"
 RUNS="${RUNS:-5}"
 START="${START:-1}"
-CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk}"
-TAGS="${TAGS:-plain plainje chonk}"
+CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early}"
+TAGS="${TAGS:-plain plainje chonk chonk-early}"
 GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
 
 mkdir -p "$RESULTS_DIR"

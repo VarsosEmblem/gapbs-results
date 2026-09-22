@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Build GAPBS three ways and install into $RESULTS_DIR/bin/<tag>/.
+# Build GAPBS four ways and install into $RESULTS_DIR/bin/<tag>/.
 #
 #   plain    clang-plain++  + jemalloc-og     (baseline)
 #   plainje  clang-plain++  + jemalloc        (chonk no analysis)
 #   chonk    clang-chonky++ + jemalloc        (chonk)
+#   chonk-early clang-chonky++ + jemalloc     (modified analysis)
 #
 # Usage:
 #   ./build_gapbs.sh
-#   TAGS="plain" ./build_gapbs.sh          # one config
-#   GENERATE_GRAPHS=1 ./build_gapbs.sh     # also write default .sg/.wsg files
+#   TAGS="plain" ./build_gapbs.sh                    # one config
+#   CHONK_EARLYXX=/path/to/clang++ ./build_gapbs.sh # set placeholder path
+#   GENERATE_GRAPHS=1 ./build_gapbs.sh               # also write default .sg/.wsg files
 set -euo pipefail
 
 GAPBS_DIR="${GAPBS_DIR:-$HOME/gapbs}"
@@ -20,7 +22,7 @@ JEMALLOC_OG="${JEMALLOC_OG:-$HOME/jemalloc-5.3.0}"
 JEMALLOC="${JEMALLOC:-$HOME/jemalloc}"
 # Clang 19 has no matching libomp in llvm-19-build; PARSEC uses libgomp.
 OPENMP="${OPENMP:-libgomp}"
-TAGS="${TAGS:-plain plainje chonk}"
+TAGS="${TAGS:-plain plainje chonk chonk-early}"
 JOBS="${JOBS:-$(nproc)}"
 SUITE="${SUITE:-bc bfs cc cc_sv pr pr_spmv sssp tc converter}"
 GRAPHS="${GRAPHS:-kron22 urand22}"
@@ -28,12 +30,14 @@ GENERATE_GRAPHS="${GENERATE_GRAPHS:-0}"
 
 PLAINXX="$LLVM_DIR/bin/clang-plain++"
 CHONKXX="$LLVM_DIR/bin/clang-chonky++"
+CHONK_EARLYXX="${CHONK_EARLYXX:-/path/to/chonk-early/bin/clang-chonky++}"
 
 die() { echo "error: $*" >&2; exit 1; }
 
 [[ -d "$GAPBS_DIR/src" ]] || die "GAPBS sources not found in $GAPBS_DIR"
 [[ -x "$PLAINXX" ]] || die "missing $PLAINXX"
 [[ -x "$CHONKXX" ]] || die "missing $CHONKXX"
+[[ -x "$CHONK_EARLYXX" ]] || die "missing $CHONK_EARLYXX (set CHONK_EARLYXX to your chonk-early clang++)"
 [[ -e "$JEMALLOC_OG/lib/libjemalloc.so" ]] || die "missing $JEMALLOC_OG/lib/libjemalloc.so"
 [[ -e "$JEMALLOC/lib/libjemalloc.so" ]] || die "missing $JEMALLOC/lib/libjemalloc.so"
 
@@ -56,6 +60,8 @@ write_wrapper() {
 write_wrapper "$RESULTS_DIR/wrappers/plain++"    "$PLAINXX" "$JEMALLOC_OG"
 write_wrapper "$RESULTS_DIR/wrappers/plainje++"  "$PLAINXX" "$JEMALLOC"
 write_wrapper "$RESULTS_DIR/wrappers/chonk++"    "$CHONKXX" "$JEMALLOC" \
+  -mllvm -coaccess-stats
+write_wrapper "$RESULTS_DIR/wrappers/chonk-early++" "$CHONK_EARLYXX" "$JEMALLOC" \
   -mllvm -coaccess-stats
 
 # Passing CXX_FLAGS on the command line suppresses the Makefile += of -fopenmp
@@ -103,7 +109,7 @@ parse_graph() {
 
 generate_graphs() {
   local conv="" tag
-  for tag in plain plainje chonk; do
+  for tag in $TAGS; do
     if [[ -x "$RESULTS_DIR/bin/$tag/converter" ]]; then
       conv="$RESULTS_DIR/bin/$tag/converter"
       break
