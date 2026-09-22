@@ -30,7 +30,7 @@ GENERATE_GRAPHS="${GENERATE_GRAPHS:-0}"
 
 PLAINXX="$LLVM_DIR/bin/clang-plain++"
 CHONKXX="$LLVM_DIR/bin/clang-chonky++"
-CHONK_EARLYXX="$LLVM_DIR/bin/clang-chonky-early++}"
+CHONK_EARLYXX="$LLVM_DIR/bin/clang-chonky-early++"
 
 die() { echo "error: $*" >&2; exit 1; }
 
