@@ -37,8 +37,7 @@ GENERATE_GRAPHS="${GENERATE_GRAPHS:-0}"
 PLAINXX="$LLVM_DIR/bin/clang-plain++"
 CHONKXX="$LLVM_DIR/bin/clang-chonky++"
 CHONK_EARLYXX="$LLVM_DIR/bin/clang-chonky-early++"
-# Placeholder compiler for the happy analysis.
-HAPPYXX="${HAPPYXX:-/path/to/happy/clang++}"
+HAPPYXX="$LLVM_DIR/bin/clang-happy++"
 
 die() { echo "error: $*" >&2; exit 1; }
 
