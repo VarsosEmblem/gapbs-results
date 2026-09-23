@@ -1,0 +1,72 @@
+INFO: Setting log level to -1
+	-HBW int call succeeded
+Read Time:           2.71085
+Graph has 67108864 nodes and 1051923236 undirected edges for degree: 15
+Trial Time:          1.39340
+Trial Time:          1.50327
+Trial Time:          1.26733
+Trial Time:          1.54605
+Trial Time:          1.57252
+Trial Time:          1.46121
+Trial Time:          1.51274
+Trial Time:          1.50275
+Trial Time:          1.42193
+Trial Time:          1.40801
+Trial Time:          1.62886
+Trial Time:          1.41223
+Trial Time:          1.54098
+Trial Time:          1.49667
+Trial Time:          1.40689
+Trial Time:          1.48767
+Trial Time:          1.40215
+Trial Time:          1.41253
+Trial Time:          1.49703
+Trial Time:          1.41243
+Trial Time:          1.58654
+Trial Time:          1.56603
+Trial Time:          1.47507
+Trial Time:          1.51816
+Trial Time:          1.31212
+Trial Time:          1.53685
+Trial Time:          1.36186
+Trial Time:          1.53362
+Trial Time:          1.59251
+Trial Time:          1.42092
+Trial Time:          1.57712
+Trial Time:          1.50628
+Trial Time:          1.38640
+Trial Time:          1.51620
+Trial Time:          1.40530
+Trial Time:          1.42433
+Trial Time:          1.50083
+Trial Time:          1.52048
+Trial Time:          1.43536
+Trial Time:          1.47824
+Trial Time:          1.45511
+Trial Time:          1.31631
+Trial Time:          1.46139
+Trial Time:          1.45597
+Trial Time:          1.32071
+Trial Time:          1.47799
+Trial Time:          1.56585
+Trial Time:          1.58316
+Trial Time:          1.47460
+Trial Time:          1.32725
+Trial Time:          1.47766
+Trial Time:          1.47236
+Trial Time:          1.50846
+Trial Time:          1.55880
+Trial Time:          1.54035
+Trial Time:          1.51872
+Trial Time:          1.52165
+Trial Time:          1.44812
+Trial Time:          1.52128
+Trial Time:          1.49497
+Trial Time:          1.44550
+Trial Time:          1.42080
+Trial Time:          1.40128
+Trial Time:          1.57024
+Average Time:        1.47312
+real 97.38
+user 10097.51
+sys 110.41
