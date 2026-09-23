@@ -1,0 +1,27 @@
+INFO: Only HBW allocations will be printed. Set AUTO_HBW_LOG to disable/enable.
+INFO: Using default values for array size thresholds. Set AUTO_HBW_SIZE=X:Y to change.
+INFO: Allocations greater than 1024K will be allocated in HBW. Set AUTO_HBW_SIZE=X:Y to change this limit.
+INFO: autohbw.so loaded!
+	-HBW int call succeeded
+Read Time:           0.21091
+Graph has 4194302 nodes and 64155725 undirected edges for degree: 15
+Trial Time:          0.60425
+Trial Time:          0.60625
+Trial Time:          0.50544
+Trial Time:          0.50308
+Trial Time:          0.50211
+Trial Time:          0.50259
+Trial Time:          0.50123
+Trial Time:          0.50250
+Trial Time:          0.50408
+Trial Time:          0.50270
+Trial Time:          0.50222
+Trial Time:          0.50350
+Trial Time:          0.50371
+Trial Time:          0.50699
+Trial Time:          0.50898
+Trial Time:          0.51019
+Average Time:        0.51686
+real 8.61
+user 520.50
+sys 9.28

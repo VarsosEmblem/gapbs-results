@@ -1,0 +1,2 @@
+HAPPY_INFO: Setting log level to -1
+	-HBW int call succeeded
