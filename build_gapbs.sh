@@ -10,9 +10,11 @@
 #   autohbw     clang-plain++        + system malloc
 #   ddr-only    clang-plain++        + system malloc      (same link as autohbw)
 #   hbm-only    clang-plain++        + system malloc      (same link as ddr-only)
+#   glibc       clang-plain++        + system malloc      (glibc malloc, no preload)
 #
-# happy, bcda, autohbw, ddr-only, and hbm-only do not link jemalloc.
-# compare_gapbs.sh LD_PRELOADs libautohbw.so for each so it can interpose malloc.
+# happy, bcda, autohbw, ddr-only, hbm-only, and glibc do not link jemalloc.
+# compare_gapbs.sh LD_PRELOADs libautohbw.so for happy, bcda, autohbw,
+# ddr-only, and hbm-only. glibc is the default system allocator.
 # bcda preloads the same library as happy. Set BCDAXX to the bcda clang++.
 # ddr-only sets AUTO_HBW_SIZE=150G so allocations stay on DDR.
 # hbm-only sets AUTO_HBW_SIZE=2 so allocations larger than 2 bytes go to HBM.
@@ -35,7 +37,7 @@ JEMALLOC_OG="${JEMALLOC_OG:-$HOME/jemalloc-5.3.0}"
 JEMALLOC="${JEMALLOC:-$HOME/jemalloc}"
 # Clang 19 has no matching libomp in llvm-19-build; PARSEC uses libgomp.
 OPENMP="${OPENMP:-libgomp}"
-TAGS="${TAGS:-plain plainje chonk chonk-early happy bcda autohbw ddr-only hbm-only}"
+TAGS="${TAGS:-plain plainje chonk chonk-early happy bcda autohbw ddr-only hbm-only glibc}"
 JOBS="${JOBS:-$(nproc)}"
 SUITE="${SUITE:-bc bfs cc cc_sv pr pr_spmv sssp tc converter}"
 GRAPHS="${GRAPHS:-kron22 urand22}"
@@ -110,6 +112,7 @@ write_wrapper "$RESULTS_DIR/wrappers/bcda++" "$BCDAXX" "" \
 write_wrapper "$RESULTS_DIR/wrappers/autohbw++" "$PLAINXX" "" ""
 write_wrapper "$RESULTS_DIR/wrappers/ddr-only++" "$PLAINXX" "" ""
 write_wrapper "$RESULTS_DIR/wrappers/hbm-only++" "$PLAINXX" "" ""
+write_wrapper "$RESULTS_DIR/wrappers/glibc++" "$PLAINXX" "" ""
 
 # Passing CXX_FLAGS on the command line suppresses the Makefile += of -fopenmp
 # (libomp). Use libgomp instead, matching PARSEC's clang-*.bldconf for freqmine.

@@ -10,6 +10,7 @@
 #   clang-autohbw     + system malloc      (clang-plain; LD_PRELOAD libautohbw)
 #   clang-ddr-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=150G)
 #   clang-hbm-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=2)
+#   clang-glibc       + system malloc      (clang-plain; glibc malloc, no LD_PRELOAD)
 #
 # Times come from GAPBS "Average Time" (kernel only), not wall-clock load.
 # Graphs are shared serialized .sg/.wsg files under $RESULTS_DIR/graphs/.
@@ -30,8 +31,8 @@ NTHREADS="${NTHREADS:-16}"
 WARMUP="${WARMUP:-1}"
 RUNS="${RUNS:-5}"
 START="${START:-1}"
-CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early clang-happy clang-bcda clang-autohbw clang-ddr-only clang-hbm-only}"
-TAGS="${TAGS:-plain plainje chonk chonk-early happy bcda autohbw ddr-only hbm-only}"
+CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early clang-happy clang-bcda clang-autohbw clang-ddr-only clang-hbm-only clang-glibc}"
+TAGS="${TAGS:-plain plainje chonk chonk-early happy bcda autohbw ddr-only hbm-only glibc}"
 GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
 HAPPY_PRELOAD="${HAPPY_PRELOAD:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
 BCDA_PRELOAD="${BCDA_PRELOAD:-$HAPPY_PRELOAD}"
