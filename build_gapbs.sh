@@ -45,7 +45,7 @@ PLAINXX="$LLVM_DIR/bin/clang-plain++"
 CHONKXX="$LLVM_DIR/bin/clang-chonky++"
 CHONK_EARLYXX="$LLVM_DIR/bin/clang-chonky-early++"
 HAPPYXX="$LLVM_DIR/bin/clang-happy++"
-BCDAXX="${BCDAXX:-/path/to/bcda/clang++}"
+BCDAXX="$LLVM_DIR/bin/clang-bcda++"
 HAPPY_AUTOHBW_SO="${HAPPY_AUTOHBW_SO:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
 HAPPY_AUTOHBW_LIBDIR="$(dirname "$HAPPY_AUTOHBW_SO")"
 
