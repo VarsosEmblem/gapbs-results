@@ -6,6 +6,7 @@
 #   clang-chonk       + jemalloc           (chonk)
 #   clang-chonk-early + jemalloc           (modified analysis)
 #   clang-happy       + system malloc      (different analysis; LD_PRELOAD libautohbw)
+#   clang-bcda        + system malloc      (placeholder compiler; LD_PRELOAD happy's libautohbw)
 #   clang-autohbw     + system malloc      (clang-plain; LD_PRELOAD libautohbw)
 #   clang-ddr-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=150G)
 #   clang-hbm-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=2)
@@ -29,10 +30,11 @@ NTHREADS="${NTHREADS:-16}"
 WARMUP="${WARMUP:-1}"
 RUNS="${RUNS:-5}"
 START="${START:-1}"
-CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early clang-happy clang-autohbw clang-ddr-only clang-hbm-only}"
-TAGS="${TAGS:-plain plainje chonk chonk-early happy autohbw ddr-only hbm-only}"
+CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early clang-happy clang-bcda clang-autohbw clang-ddr-only clang-hbm-only}"
+TAGS="${TAGS:-plain plainje chonk chonk-early happy bcda autohbw ddr-only hbm-only}"
 GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
 HAPPY_PRELOAD="${HAPPY_PRELOAD:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
+BCDA_PRELOAD="${BCDA_PRELOAD:-$HAPPY_PRELOAD}"
 AUTOHBW_PRELOAD="${AUTOHBW_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
 DDR_ONLY_PRELOAD="${DDR_ONLY_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
 HBM_ONLY_PRELOAD="${HBM_ONLY_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
@@ -53,6 +55,9 @@ die() { echo "error: $*" >&2; exit 1; }
 
 if [[ " $TAGS " == *" happy "* ]]; then
   [[ -e "$HAPPY_PRELOAD" ]] || die "missing $HAPPY_PRELOAD"
+fi
+if [[ " $TAGS " == *" bcda "* ]]; then
+  [[ -e "$BCDA_PRELOAD" ]] || die "missing $BCDA_PRELOAD"
 fi
 if [[ " $TAGS " == *" autohbw "* ]]; then
   [[ -e "$AUTOHBW_PRELOAD" ]] || die "missing $AUTOHBW_PRELOAD"
@@ -142,12 +147,13 @@ run_one() {
   # Clear autohbw vars first so they cannot leak in from the parent environment.
   local -a run_env=(env -u LD_PRELOAD -u AUTO_HBW_LOG -u AUTO_HBW_SIZE)
   case "$tag" in
-    happy|autohbw|ddr-only|hbm-only)
+    happy|bcda|autohbw|ddr-only|hbm-only)
       run_env+=(AUTO_HBW_LOG=-1)
       ;;
   esac
   case "$tag" in
     happy) run_env+=(LD_PRELOAD="$HAPPY_PRELOAD") ;;
+    bcda) run_env+=(LD_PRELOAD="$BCDA_PRELOAD") ;;
     autohbw) run_env+=(LD_PRELOAD="$AUTOHBW_PRELOAD") ;;
     ddr-only)
       run_env+=(LD_PRELOAD="$DDR_ONLY_PRELOAD" AUTO_HBW_SIZE="$DDR_ONLY_HBW_SIZE")
