@@ -5,11 +5,11 @@
 #   plainje     clang-plain++        + jemalloc           (chonk no analysis)
 #   chonk       clang-chonky++       + jemalloc           (chonk)
 #   chonk-early clang-chonky-early++ + jemalloc           (modified analysis)
-#   happy       happy clang++        + jemalloc-og        (different analysis, -lautohbw)
-#   autohbw     clang-plain++        + jemalloc-og        (same allocator as plain)
+#   happy       happy clang++        + system malloc      (different analysis, -lautohbw)
+#   autohbw     clang-plain++        + system malloc
 #
-# happy and autohbw link the same jemalloc as plain. compare_gapbs.sh
-# LD_PRELOADs a different libautohbw.so for each when it runs them.
+# happy and autohbw do not link jemalloc. compare_gapbs.sh LD_PRELOADs a
+# different libautohbw.so for each so it can interpose the system allocator.
 #
 # Usage:
 #   ./build_gapbs.sh
@@ -57,16 +57,30 @@ fi
 mkdir -p "$RESULTS_DIR/wrappers" "$RESULTS_DIR/bin"
 
 # write_wrapper OUT CLANG ALLOC_PREFIX LINK_LIBS [extra compiler flags...]
+# An empty ALLOC_PREFIX skips -ljemalloc and its -L/-rpath (system malloc).
 write_wrapper() {
   local out="$1" clang="$2" alloc="$3" link_libs="$4"
   shift 4
+  local -a lines=()
+  lines+=("exec \"$clang\" --gcc-install-dir=\"$GCC_INSTALL_DIR\" $* \"\$@\"")
+  if [[ -n "$STDCXX_LIB" ]]; then
+    lines+=("  -L\"$STDCXX_LIB\" -Wl,-rpath,\"$STDCXX_LIB\"")
+  fi
+  if [[ -n "$alloc" ]]; then
+    lines+=("  -L\"$alloc/lib\" $link_libs -Wl,-rpath,\"$alloc/lib\"")
+  elif [[ -n "$link_libs" ]]; then
+    lines+=("  $link_libs")
+  fi
   {
     echo "#!/bin/sh"
-    echo "exec \"$clang\" --gcc-install-dir=\"$GCC_INSTALL_DIR\" $* \"\$@\" \\"
-    if [[ -n "$STDCXX_LIB" ]]; then
-      echo "  -L\"$STDCXX_LIB\" -Wl,-rpath,\"$STDCXX_LIB\" \\"
-    fi
-    echo "  -L\"$alloc/lib\" $link_libs -Wl,-rpath,\"$alloc/lib\""
+    local i
+    for i in "${!lines[@]}"; do
+      if (( i < ${#lines[@]} - 1 )); then
+        echo "${lines[$i]} \\"
+      else
+        echo "${lines[$i]}"
+      fi
+    done
   } >"$out"
   chmod +x "$out"
 }
@@ -77,9 +91,9 @@ write_wrapper "$RESULTS_DIR/wrappers/chonk++"    "$CHONKXX" "$JEMALLOC" "-ljemal
   -mllvm -coaccess-stats
 write_wrapper "$RESULTS_DIR/wrappers/chonk-early++" "$CHONK_EARLYXX" "$JEMALLOC" "-ljemalloc" \
   -mllvm -coaccess-stats
-write_wrapper "$RESULTS_DIR/wrappers/happy++" "$HAPPYXX" "$JEMALLOC_OG" \
-  "-L$HAPPY_AUTOHBW_LIBDIR -lautohbw -ljemalloc -Wl,-rpath,$HAPPY_AUTOHBW_LIBDIR"
-write_wrapper "$RESULTS_DIR/wrappers/autohbw++"  "$PLAINXX" "$JEMALLOC_OG" "-ljemalloc"
+write_wrapper "$RESULTS_DIR/wrappers/happy++" "$HAPPYXX" "" \
+  "-L$HAPPY_AUTOHBW_LIBDIR -lautohbw -Wl,-rpath,$HAPPY_AUTOHBW_LIBDIR"
+write_wrapper "$RESULTS_DIR/wrappers/autohbw++" "$PLAINXX" "" ""
 
 # Passing CXX_FLAGS on the command line suppresses the Makefile += of -fopenmp
 # (libomp). Use libgomp instead, matching PARSEC's clang-*.bldconf for freqmine.

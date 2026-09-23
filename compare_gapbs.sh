@@ -5,8 +5,8 @@
 #   clang-plainje     + jemalloc           (chonk no analysis)
 #   clang-chonk       + jemalloc           (chonk)
 #   clang-chonk-early + jemalloc           (modified analysis)
-#   clang-happy       + jemalloc-og        (different analysis; LD_PRELOAD libautohbw)
-#   clang-autohbw     + jemalloc-og        (clang-plain; LD_PRELOAD libautohbw)
+#   clang-happy       + system malloc      (different analysis; LD_PRELOAD libautohbw)
+#   clang-autohbw     + system malloc      (clang-plain; LD_PRELOAD libautohbw)
 #
 # Times come from GAPBS "Average Time" (kernel only), not wall-clock load.
 # Graphs are shared serialized .sg/.wsg files under $RESULTS_DIR/graphs/.
