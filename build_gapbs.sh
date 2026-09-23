@@ -5,7 +5,7 @@
 #   plainje     clang-plain++        + jemalloc           (chonk no analysis)
 #   chonk       clang-chonky++       + jemalloc           (chonk)
 #   chonk-early clang-chonky-early++ + jemalloc           (modified analysis)
-#   happy       happy clang++        + jemalloc-og        (different analysis)
+#   happy       happy clang++        + jemalloc-og        (different analysis, -include autohbw_api.h)
 #   autohbw     clang-plain++        + jemalloc-og        (same allocator as plain)
 #
 # happy and autohbw link the same jemalloc as plain. compare_gapbs.sh
@@ -38,6 +38,7 @@ PLAINXX="$LLVM_DIR/bin/clang-plain++"
 CHONKXX="$LLVM_DIR/bin/clang-chonky++"
 CHONK_EARLYXX="$LLVM_DIR/bin/clang-chonky-early++"
 HAPPYXX="$LLVM_DIR/bin/clang-happy++"
+AUTOHBW_API_H="${AUTOHBW_API_H:-/vast/home/vchoung/memkind/autohbw/autohbw_api.h}"
 
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -49,6 +50,7 @@ die() { echo "error: $*" >&2; exit 1; }
 [[ -e "$JEMALLOC/lib/libjemalloc.so" ]] || die "missing $JEMALLOC/lib/libjemalloc.so"
 if [[ " $TAGS " == *" happy "* ]]; then
   [[ -x "$HAPPYXX" ]] || die "missing $HAPPYXX (set HAPPYXX to the happy clang++)"
+  [[ -f "$AUTOHBW_API_H" ]] || die "missing $AUTOHBW_API_H"
 fi
 
 mkdir -p "$RESULTS_DIR/wrappers" "$RESULTS_DIR/bin"
@@ -74,7 +76,8 @@ write_wrapper "$RESULTS_DIR/wrappers/chonk++"    "$CHONKXX" "$JEMALLOC" "-ljemal
   -mllvm -coaccess-stats
 write_wrapper "$RESULTS_DIR/wrappers/chonk-early++" "$CHONK_EARLYXX" "$JEMALLOC" "-ljemalloc" \
   -mllvm -coaccess-stats
-write_wrapper "$RESULTS_DIR/wrappers/happy++"    "$HAPPYXX" "$JEMALLOC_OG" "-ljemalloc"
+write_wrapper "$RESULTS_DIR/wrappers/happy++"    "$HAPPYXX" "$JEMALLOC_OG" "-ljemalloc" \
+  -include "$AUTOHBW_API_H"
 write_wrapper "$RESULTS_DIR/wrappers/autohbw++"  "$PLAINXX" "$JEMALLOC_OG" "-ljemalloc"
 
 # Passing CXX_FLAGS on the command line suppresses the Makefile += of -fopenmp
