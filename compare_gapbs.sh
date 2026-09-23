@@ -31,7 +31,7 @@ CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early clan
 TAGS="${TAGS:-plain plainje chonk chonk-early happy autohbw}"
 GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
 HAPPY_PRELOAD="${HAPPY_PRELOAD:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
-AUTOHBW_PRELOAD="${AUTOHBW_PRELOAD:-/vast/home/vchoung/memkind-og/.libs/libautohbw.so}"
+AUTOHBW_PRELOAD="${AUTOHBW_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
 
 mkdir -p "$RESULTS_DIR"
 read -r -a CONFIG_ARR <<<"$CONFIGS"
