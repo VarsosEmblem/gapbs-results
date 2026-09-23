@@ -5,8 +5,8 @@
 #   clang-plainje     + jemalloc           (chonk no analysis)
 #   clang-chonk       + jemalloc           (chonk)
 #   clang-chonk-early + jemalloc           (modified analysis)
-#   clang-happy       + happy allocator    (different analysis, -lmemkind)
-#   clang-autohbw     + autohbw allocator  (clang-plain, -lmemkind)
+#   clang-happy       + jemalloc-og        (different analysis; LD_PRELOAD libautohbw)
+#   clang-autohbw     + jemalloc-og        (clang-plain; LD_PRELOAD libautohbw)
 #
 # Times come from GAPBS "Average Time" (kernel only), not wall-clock load.
 # Graphs are shared serialized .sg/.wsg files under $RESULTS_DIR/graphs/.
@@ -30,6 +30,8 @@ START="${START:-1}"
 CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early clang-happy clang-autohbw}"
 TAGS="${TAGS:-plain plainje chonk chonk-early happy autohbw}"
 GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
+HAPPY_PRELOAD="${HAPPY_PRELOAD:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
+AUTOHBW_PRELOAD="${AUTOHBW_PRELOAD:-/vast/home/vchoung/memkind-og/.libs/libautohbw.so}"
 
 mkdir -p "$RESULTS_DIR"
 read -r -a CONFIG_ARR <<<"$CONFIGS"
@@ -40,6 +42,21 @@ if [[ ${#CONFIG_ARR[@]} -ne ${#TAG_ARR[@]} ]]; then
 fi
 
 die() { echo "error: $*" >&2; exit 1; }
+
+if [[ " $TAGS " == *" happy "* ]]; then
+  [[ -e "$HAPPY_PRELOAD" ]] || die "missing $HAPPY_PRELOAD"
+fi
+if [[ " $TAGS " == *" autohbw "* ]]; then
+  [[ -e "$AUTOHBW_PRELOAD" ]] || die "missing $AUTOHBW_PRELOAD"
+fi
+
+preload_for() {
+  case "$1" in
+    happy)   printf '%s\n' "$HAPPY_PRELOAD" ;;
+    autohbw) printf '%s\n' "$AUTOHBW_PRELOAD" ;;
+    *)       printf '\n' ;;
+  esac
+}
 
 parse_graph() {
   local g="$1"
@@ -115,8 +132,15 @@ run_one() {
   local -a args
   read -r -a args <<<"$(kernel_args "$kernel" "$graph")"
   export OMP_NUM_THREADS="$NTHREADS"
+  local preload
+  preload="$(preload_for "$tag")"
   # Keep GAPBS stdout/stderr and bash `time -p` (real/user/sys) in the log.
-  { time -p "$bin" "${args[@]}"; } >"$log" 2>&1 || true
+  # Other configs must not inherit an LD_PRELOAD from the environment.
+  if [[ -n "$preload" ]]; then
+    { time -p env LD_PRELOAD="$preload" "$bin" "${args[@]}"; } >"$log" 2>&1 || true
+  else
+    { time -p env -u LD_PRELOAD "$bin" "${args[@]}"; } >"$log" 2>&1 || true
+  fi
   local secs status
   secs=$(parse_average "$log")
   status=$(crash_note "$log")
