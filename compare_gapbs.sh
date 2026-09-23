@@ -8,6 +8,7 @@
 #   clang-happy       + system malloc      (different analysis; LD_PRELOAD libautohbw)
 #   clang-autohbw     + system malloc      (clang-plain; LD_PRELOAD libautohbw)
 #   clang-ddr-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=150G)
+#   clang-hbm-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=2)
 #
 # Times come from GAPBS "Average Time" (kernel only), not wall-clock load.
 # Graphs are shared serialized .sg/.wsg files under $RESULTS_DIR/graphs/.
@@ -28,14 +29,17 @@ NTHREADS="${NTHREADS:-16}"
 WARMUP="${WARMUP:-1}"
 RUNS="${RUNS:-5}"
 START="${START:-1}"
-CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early clang-happy clang-autohbw clang-ddr-only}"
-TAGS="${TAGS:-plain plainje chonk chonk-early happy autohbw ddr-only}"
+CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early clang-happy clang-autohbw clang-ddr-only clang-hbm-only}"
+TAGS="${TAGS:-plain plainje chonk chonk-early happy autohbw ddr-only hbm-only}"
 GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
 HAPPY_PRELOAD="${HAPPY_PRELOAD:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
 AUTOHBW_PRELOAD="${AUTOHBW_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
 DDR_ONLY_PRELOAD="${DDR_ONLY_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
+HBM_ONLY_PRELOAD="${HBM_ONLY_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
 # Larger than any single GAPBS allocation, so autohbw leaves every malloc on DDR.
 DDR_ONLY_HBW_SIZE="${DDR_ONLY_HBW_SIZE:-150G}"
+# Smaller than any real GAPBS allocation, so those mallocs go to HBM.
+HBM_ONLY_HBW_SIZE="${HBM_ONLY_HBW_SIZE:-2}"
 
 mkdir -p "$RESULTS_DIR"
 read -r -a CONFIG_ARR <<<"$CONFIGS"
@@ -55,6 +59,9 @@ if [[ " $TAGS " == *" autohbw "* ]]; then
 fi
 if [[ " $TAGS " == *" ddr-only "* ]]; then
   [[ -e "$DDR_ONLY_PRELOAD" ]] || die "missing $DDR_ONLY_PRELOAD"
+fi
+if [[ " $TAGS " == *" hbm-only "* ]]; then
+  [[ -e "$HBM_ONLY_PRELOAD" ]] || die "missing $HBM_ONLY_PRELOAD"
 fi
 
 parse_graph() {
@@ -135,7 +142,7 @@ run_one() {
   # Clear autohbw vars first so they cannot leak in from the parent environment.
   local -a run_env=(env -u LD_PRELOAD -u AUTO_HBW_LOG -u AUTO_HBW_SIZE)
   case "$tag" in
-    happy|autohbw|ddr-only)
+    happy|autohbw|ddr-only|hbm-only)
       run_env+=(AUTO_HBW_LOG=-1)
       ;;
   esac
@@ -144,6 +151,9 @@ run_one() {
     autohbw) run_env+=(LD_PRELOAD="$AUTOHBW_PRELOAD") ;;
     ddr-only)
       run_env+=(LD_PRELOAD="$DDR_ONLY_PRELOAD" AUTO_HBW_SIZE="$DDR_ONLY_HBW_SIZE")
+      ;;
+    hbm-only)
+      run_env+=(LD_PRELOAD="$HBM_ONLY_PRELOAD" AUTO_HBW_SIZE="$HBM_ONLY_HBW_SIZE")
       ;;
   esac
   { time -p "${run_env[@]}" "$bin" "${args[@]}"; } >"$log" 2>&1 || true
