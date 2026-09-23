@@ -7,6 +7,7 @@
 #   clang-chonk-early + jemalloc           (modified analysis)
 #   clang-happy       + system malloc      (different analysis; LD_PRELOAD libautohbw)
 #   clang-autohbw     + system malloc      (clang-plain; LD_PRELOAD libautohbw)
+#   clang-ddr-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=150G)
 #
 # Times come from GAPBS "Average Time" (kernel only), not wall-clock load.
 # Graphs are shared serialized .sg/.wsg files under $RESULTS_DIR/graphs/.
@@ -27,11 +28,14 @@ NTHREADS="${NTHREADS:-16}"
 WARMUP="${WARMUP:-1}"
 RUNS="${RUNS:-5}"
 START="${START:-1}"
-CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early clang-happy clang-autohbw}"
-TAGS="${TAGS:-plain plainje chonk chonk-early happy autohbw}"
+CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early clang-happy clang-autohbw clang-ddr-only}"
+TAGS="${TAGS:-plain plainje chonk chonk-early happy autohbw ddr-only}"
 GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
 HAPPY_PRELOAD="${HAPPY_PRELOAD:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
 AUTOHBW_PRELOAD="${AUTOHBW_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
+DDR_ONLY_PRELOAD="${DDR_ONLY_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
+# Larger than any single GAPBS allocation, so autohbw leaves every malloc on DDR.
+DDR_ONLY_HBW_SIZE="${DDR_ONLY_HBW_SIZE:-150G}"
 
 mkdir -p "$RESULTS_DIR"
 read -r -a CONFIG_ARR <<<"$CONFIGS"
@@ -49,14 +53,9 @@ fi
 if [[ " $TAGS " == *" autohbw "* ]]; then
   [[ -e "$AUTOHBW_PRELOAD" ]] || die "missing $AUTOHBW_PRELOAD"
 fi
-
-preload_for() {
-  case "$1" in
-    happy)   printf '%s\n' "$HAPPY_PRELOAD" ;;
-    autohbw) printf '%s\n' "$AUTOHBW_PRELOAD" ;;
-    *)       printf '\n' ;;
-  esac
-}
+if [[ " $TAGS " == *" ddr-only "* ]]; then
+  [[ -e "$DDR_ONLY_PRELOAD" ]] || die "missing $DDR_ONLY_PRELOAD"
+fi
 
 parse_graph() {
   local g="$1"
@@ -132,15 +131,22 @@ run_one() {
   local -a args
   read -r -a args <<<"$(kernel_args "$kernel" "$graph")"
   export OMP_NUM_THREADS="$NTHREADS"
-  local preload
-  preload="$(preload_for "$tag")"
   # Keep GAPBS stdout/stderr and bash `time -p` (real/user/sys) in the log.
-  # Other configs must not inherit an LD_PRELOAD from the environment.
-  if [[ -n "$preload" ]]; then
-    { time -p env LD_PRELOAD="$preload" "$bin" "${args[@]}"; } >"$log" 2>&1 || true
-  else
-    { time -p env -u LD_PRELOAD "$bin" "${args[@]}"; } >"$log" 2>&1 || true
-  fi
+  # Clear autohbw vars first so they cannot leak in from the parent environment.
+  local -a run_env=(env -u LD_PRELOAD -u AUTO_HBW_LOG -u AUTO_HBW_SIZE)
+  case "$tag" in
+    happy|autohbw|ddr-only)
+      run_env+=(AUTO_HBW_LOG=-1)
+      ;;
+  esac
+  case "$tag" in
+    happy) run_env+=(LD_PRELOAD="$HAPPY_PRELOAD") ;;
+    autohbw) run_env+=(LD_PRELOAD="$AUTOHBW_PRELOAD") ;;
+    ddr-only)
+      run_env+=(LD_PRELOAD="$DDR_ONLY_PRELOAD" AUTO_HBW_SIZE="$DDR_ONLY_HBW_SIZE")
+      ;;
+  esac
+  { time -p "${run_env[@]}" "$bin" "${args[@]}"; } >"$log" 2>&1 || true
   local secs status
   secs=$(parse_average "$log")
   status=$(crash_note "$log")

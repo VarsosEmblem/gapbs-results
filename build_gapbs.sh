@@ -7,9 +7,11 @@
 #   chonk-early clang-chonky-early++ + jemalloc           (modified analysis)
 #   happy       happy clang++        + system malloc      (different analysis, -lautohbw)
 #   autohbw     clang-plain++        + system malloc
+#   ddr-only    clang-plain++        + system malloc      (same link as autohbw)
 #
-# happy and autohbw do not link jemalloc. compare_gapbs.sh LD_PRELOADs a
-# different libautohbw.so for each so it can interpose the system allocator.
+# happy, autohbw, and ddr-only do not link jemalloc. compare_gapbs.sh
+# LD_PRELOADs libautohbw.so for each so it can interpose the system allocator.
+# ddr-only sets AUTO_HBW_SIZE=150G so allocations stay on DDR.
 #
 # Usage:
 #   ./build_gapbs.sh
@@ -28,7 +30,7 @@ JEMALLOC_OG="${JEMALLOC_OG:-$HOME/jemalloc-5.3.0}"
 JEMALLOC="${JEMALLOC:-$HOME/jemalloc}"
 # Clang 19 has no matching libomp in llvm-19-build; PARSEC uses libgomp.
 OPENMP="${OPENMP:-libgomp}"
-TAGS="${TAGS:-plain plainje chonk chonk-early happy autohbw}"
+TAGS="${TAGS:-plain plainje chonk chonk-early happy autohbw ddr-only}"
 JOBS="${JOBS:-$(nproc)}"
 SUITE="${SUITE:-bc bfs cc cc_sv pr pr_spmv sssp tc converter}"
 GRAPHS="${GRAPHS:-kron22 urand22}"
@@ -94,6 +96,7 @@ write_wrapper "$RESULTS_DIR/wrappers/chonk-early++" "$CHONK_EARLYXX" "$JEMALLOC"
 write_wrapper "$RESULTS_DIR/wrappers/happy++" "$HAPPYXX" "" \
   "-L$HAPPY_AUTOHBW_LIBDIR -lautohbw -Wl,-rpath,$HAPPY_AUTOHBW_LIBDIR"
 write_wrapper "$RESULTS_DIR/wrappers/autohbw++" "$PLAINXX" "" ""
+write_wrapper "$RESULTS_DIR/wrappers/ddr-only++" "$PLAINXX" "" ""
 
 # Passing CXX_FLAGS on the command line suppresses the Makefile += of -fopenmp
 # (libomp). Use libgomp instead, matching PARSEC's clang-*.bldconf for freqmine.
