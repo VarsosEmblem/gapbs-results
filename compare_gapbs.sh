@@ -6,7 +6,7 @@
 #   clang-chonk       + jemalloc           (chonk)
 #   clang-chonk-early + jemalloc           (modified analysis)
 #   clang-happy       + system malloc      (different analysis; LD_PRELOAD libautohbw)
-#   clang-bcda        + system malloc      (placeholder compiler; LD_PRELOAD happy's libautohbw)
+#   clang-bcda        + system malloc      (placeholder compiler, -lautohbw; LD_PRELOAD happy's libautohbw)
 #   clang-autohbw     + system malloc      (clang-plain; LD_PRELOAD libautohbw)
 #   clang-ddr-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=150G)
 #   clang-hbm-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=2)
