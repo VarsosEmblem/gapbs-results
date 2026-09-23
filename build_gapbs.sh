@@ -6,7 +6,7 @@
 #   chonk       clang-chonky++       + jemalloc           (chonk)
 #   chonk-early clang-chonky-early++ + jemalloc           (modified analysis)
 #   happy       happy clang++        + system malloc      (different analysis, -lautohbw)
-#   bcda        bcda clang++         + system malloc      (placeholder compiler)
+#   bcda        bcda clang++         + system malloc      (placeholder compiler, -lautohbw)
 #   autohbw     clang-plain++        + system malloc
 #   ddr-only    clang-plain++        + system malloc      (same link as autohbw)
 #   hbm-only    clang-plain++        + system malloc      (same link as ddr-only)
@@ -63,6 +63,7 @@ if [[ " $TAGS " == *" happy "* ]]; then
 fi
 if [[ " $TAGS " == *" bcda "* ]]; then
   [[ -x "$BCDAXX" ]] || die "missing $BCDAXX (set BCDAXX to the bcda clang++)"
+  [[ -e "$HAPPY_AUTOHBW_SO" ]] || die "missing $HAPPY_AUTOHBW_SO"
 fi
 
 mkdir -p "$RESULTS_DIR/wrappers" "$RESULTS_DIR/bin"
@@ -104,7 +105,8 @@ write_wrapper "$RESULTS_DIR/wrappers/chonk-early++" "$CHONK_EARLYXX" "$JEMALLOC"
   -mllvm -coaccess-stats
 write_wrapper "$RESULTS_DIR/wrappers/happy++" "$HAPPYXX" "" \
   "-L$HAPPY_AUTOHBW_LIBDIR -lautohbw -Wl,-rpath,$HAPPY_AUTOHBW_LIBDIR"
-write_wrapper "$RESULTS_DIR/wrappers/bcda++" "$BCDAXX" "" ""
+write_wrapper "$RESULTS_DIR/wrappers/bcda++" "$BCDAXX" "" \
+  "-L$HAPPY_AUTOHBW_LIBDIR -lautohbw -Wl,-rpath,$HAPPY_AUTOHBW_LIBDIR"
 write_wrapper "$RESULTS_DIR/wrappers/autohbw++" "$PLAINXX" "" ""
 write_wrapper "$RESULTS_DIR/wrappers/ddr-only++" "$PLAINXX" "" ""
 write_wrapper "$RESULTS_DIR/wrappers/hbm-only++" "$PLAINXX" "" ""
