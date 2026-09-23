@@ -1,0 +1,75 @@
+INFO: Only HBW allocations will be printed. Set AUTO_HBW_LOG to disable/enable.
+INFO: Using default values for array size thresholds. Set AUTO_HBW_SIZE=X:Y to change.
+INFO: Allocations greater than 1024K will be allocated in HBW. Set AUTO_HBW_SIZE=X:Y to change this limit.
+INFO: autohbw.so loaded!
+	-HBW int call succeeded
+Read Time:           0.32224
+Graph has 4194302 nodes and 64155725 undirected edges for degree: 15
+Trial Time:          0.24961
+Trial Time:          0.22209
+Trial Time:          0.26748
+Trial Time:          0.22064
+Trial Time:          0.23202
+Trial Time:          0.22013
+Trial Time:          0.22261
+Trial Time:          0.22868
+Trial Time:          0.21420
+Trial Time:          0.22058
+Trial Time:          0.22076
+Trial Time:          0.21349
+Trial Time:          0.23263
+Trial Time:          0.21011
+Trial Time:          0.21087
+Trial Time:          0.20609
+Trial Time:          0.24126
+Trial Time:          0.22010
+Trial Time:          0.22431
+Trial Time:          0.21147
+Trial Time:          0.23077
+Trial Time:          0.21088
+Trial Time:          0.22399
+Trial Time:          0.25982
+Trial Time:          0.23378
+Trial Time:          0.22217
+Trial Time:          0.23713
+Trial Time:          0.22270
+Trial Time:          0.20927
+Trial Time:          0.21649
+Trial Time:          0.21185
+Trial Time:          0.21893
+Trial Time:          0.21483
+Trial Time:          0.22059
+Trial Time:          0.24302
+Trial Time:          0.24093
+Trial Time:          0.21133
+Trial Time:          0.20883
+Trial Time:          0.21454
+Trial Time:          0.21680
+Trial Time:          0.22095
+Trial Time:          0.26482
+Trial Time:          0.22411
+Trial Time:          0.23157
+Trial Time:          0.21620
+Trial Time:          0.23286
+Trial Time:          0.22418
+Trial Time:          0.22985
+Trial Time:          0.22008
+Trial Time:          0.22147
+Trial Time:          0.21449
+Trial Time:          0.22689
+Trial Time:          0.23219
+Trial Time:          0.22382
+Trial Time:          0.22283
+Trial Time:          0.23800
+Trial Time:          0.21548
+Trial Time:          0.21276
+Trial Time:          0.22783
+Trial Time:          0.23085
+Trial Time:          0.21428
+Trial Time:          0.21615
+Trial Time:          0.21120
+Trial Time:          0.21970
+Average Time:        0.22422
+real 14.93
+user 896.04
+sys 22.48
