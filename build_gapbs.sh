@@ -49,7 +49,7 @@ PLAINXX="$LLVM_DIR/bin/clang-plain++"
 CHONKXX="$LLVM_DIR/bin/clang-chonky++"
 CHONK_EARLYXX="$LLVM_DIR/bin/clang-chonky-early++"
 # Placeholder until the scoped compiler is installed on the build machine.
-CHONK_SCOPEDXX="${CHONK_SCOPEDXX:-/path/to/clang++}"
+CHONK_SCOPEDXX="$LLVM_DIR/bin/clang-chonky-scoped++"
 HAPPYXX="$LLVM_DIR/bin/clang-happy++"
 BCDAXX="$LLVM_DIR/bin/clang-bcda++"
 HAPPY_AUTOHBW_SO="${HAPPY_AUTOHBW_SO:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
