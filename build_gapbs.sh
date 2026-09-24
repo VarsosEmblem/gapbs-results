@@ -5,7 +5,7 @@
 #   plainje     clang-plain++        + jemalloc           (chonk no analysis)
 #   chonk       clang-chonky++       + jemalloc           (chonk)
 #   chonk-early clang-chonky-early++ + jemalloc           (modified analysis)
-#   chonk-scoped CHONK_SCOPEDXX      + jemalloc           (window only on timed kernels)
+#   chonk-scoped CHONK_SCOPEDXX      + jemalloc           (cset_assign only in timed kernels)
 #   happy       happy clang++        + system malloc      (different analysis, -lautohbw)
 #   bcda        bcda clang++         + system malloc      (placeholder compiler, -lautohbw)
 #   autohbw     clang-plain++        + system malloc
@@ -112,10 +112,10 @@ write_wrapper "$RESULTS_DIR/wrappers/chonk++"    "$CHONKXX" "$JEMALLOC" "-ljemal
   -mllvm -coaccess-stats
 write_wrapper "$RESULTS_DIR/wrappers/chonk-early++" "$CHONK_EARLYXX" "$JEMALLOC" "-ljemalloc" \
   -mllvm -coaccess-stats
-# One wrapper compiles every benchmark. Each root only matches the kernel in
-# its own file; callees and OpenMP outlined bodies are pulled in from there.
-# PageRankPull is listed as well as PageRankPullGS because the shorter name
-# is a substring of the longer one and pr_spmv uses PageRankPull.
+# One wrapper compiles every benchmark. The whole module is analyzed.
+# Each root names that benchmark's kernel. Sets are built only from pairs
+# recorded inside the matching kernel, so a kernel with no real co-access
+# gets no cset_assign.
 write_wrapper "$RESULTS_DIR/wrappers/chonk-scoped++" "$CHONK_SCOPEDXX" "$JEMALLOC" "-ljemalloc" \
   -mllvm -coaccess-stats \
   -mllvm -coaccess-roots=DOBFS,DeltaStep,Brandes,PageRankPullGS,PageRankPull,Afforest,ShiloachVishkin,Hybrid
