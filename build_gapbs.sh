@@ -5,6 +5,7 @@
 #   plainje     clang-plain++        + jemalloc           (chonk no analysis)
 #   chonk       clang-chonky++       + jemalloc           (chonk)
 #   chonk-early clang-chonky-early++ + jemalloc           (modified analysis)
+#   chonk-scoped CHONK_SCOPEDXX      + jemalloc           (window only on timed kernels)
 #   happy       happy clang++        + system malloc      (different analysis, -lautohbw)
 #   bcda        bcda clang++         + system malloc      (placeholder compiler, -lautohbw)
 #   autohbw     clang-plain++        + system malloc
@@ -23,6 +24,7 @@
 #   ./build_gapbs.sh
 #   TAGS="plain" ./build_gapbs.sh                    # one config
 #   CHONK_EARLYXX=/path/to/clang++ ./build_gapbs.sh # set placeholder path
+#   CHONK_SCOPEDXX=/path/to/clang++ ./build_gapbs.sh # chonk clang++ with -coaccess-roots
 #   HAPPYXX=/path/to/clang++ ./build_gapbs.sh
 #   BCDAXX=/path/to/clang++ ./build_gapbs.sh
 #   GENERATE_GRAPHS=1 ./build_gapbs.sh               # also write default .sg/.wsg files
@@ -37,7 +39,7 @@ JEMALLOC_OG="${JEMALLOC_OG:-$HOME/jemalloc-5.3.0}"
 JEMALLOC="${JEMALLOC:-$HOME/jemalloc}"
 # Clang 19 has no matching libomp in llvm-19-build; PARSEC uses libgomp.
 OPENMP="${OPENMP:-libgomp}"
-TAGS="${TAGS:-plain plainje chonk chonk-early happy bcda autohbw ddr-only hbm-only glibc}"
+TAGS="${TAGS:-plain plainje chonk chonk-early chonk-scoped happy bcda autohbw ddr-only hbm-only glibc}"
 JOBS="${JOBS:-$(nproc)}"
 SUITE="${SUITE:-bc bfs cc cc_sv pr pr_spmv sssp tc converter}"
 GRAPHS="${GRAPHS:-kron22 urand22}"
@@ -46,6 +48,8 @@ GENERATE_GRAPHS="${GENERATE_GRAPHS:-0}"
 PLAINXX="$LLVM_DIR/bin/clang-plain++"
 CHONKXX="$LLVM_DIR/bin/clang-chonky++"
 CHONK_EARLYXX="$LLVM_DIR/bin/clang-chonky-early++"
+# Placeholder until the scoped compiler is installed on the build machine.
+CHONK_SCOPEDXX="${CHONK_SCOPEDXX:-/path/to/clang++}"
 HAPPYXX="$LLVM_DIR/bin/clang-happy++"
 BCDAXX="$LLVM_DIR/bin/clang-bcda++"
 HAPPY_AUTOHBW_SO="${HAPPY_AUTOHBW_SO:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
@@ -59,6 +63,9 @@ die() { echo "error: $*" >&2; exit 1; }
 [[ -x "$CHONK_EARLYXX" ]] || die "missing $CHONK_EARLYXX (set CHONK_EARLYXX to your chonk-early clang++)"
 [[ -e "$JEMALLOC_OG/lib/libjemalloc.so" ]] || die "missing $JEMALLOC_OG/lib/libjemalloc.so"
 [[ -e "$JEMALLOC/lib/libjemalloc.so" ]] || die "missing $JEMALLOC/lib/libjemalloc.so"
+if [[ " $TAGS " == *" chonk-scoped "* ]]; then
+  [[ -x "$CHONK_SCOPEDXX" ]] || die "missing $CHONK_SCOPEDXX (set CHONK_SCOPEDXX to the chonk clang++ with -coaccess-roots)"
+fi
 if [[ " $TAGS " == *" happy "* ]]; then
   [[ -x "$HAPPYXX" ]] || die "missing $HAPPYXX (set HAPPYXX to the happy clang++)"
   [[ -e "$HAPPY_AUTOHBW_SO" ]] || die "missing $HAPPY_AUTOHBW_SO"
@@ -105,6 +112,13 @@ write_wrapper "$RESULTS_DIR/wrappers/chonk++"    "$CHONKXX" "$JEMALLOC" "-ljemal
   -mllvm -coaccess-stats
 write_wrapper "$RESULTS_DIR/wrappers/chonk-early++" "$CHONK_EARLYXX" "$JEMALLOC" "-ljemalloc" \
   -mllvm -coaccess-stats
+# One wrapper compiles every benchmark. Each root only matches the kernel in
+# its own file; callees and OpenMP outlined bodies are pulled in from there.
+# PageRankPull is listed as well as PageRankPullGS because the shorter name
+# is a substring of the longer one and pr_spmv uses PageRankPull.
+write_wrapper "$RESULTS_DIR/wrappers/chonk-scoped++" "$CHONK_SCOPEDXX" "$JEMALLOC" "-ljemalloc" \
+  -mllvm -coaccess-stats \
+  -mllvm -coaccess-roots=DOBFS,DeltaStep,Brandes,PageRankPullGS,PageRankPull,Afforest,ShiloachVishkin,Hybrid
 write_wrapper "$RESULTS_DIR/wrappers/happy++" "$HAPPYXX" "" \
   "-L$HAPPY_AUTOHBW_LIBDIR -lautohbw -Wl,-rpath,$HAPPY_AUTOHBW_LIBDIR"
 write_wrapper "$RESULTS_DIR/wrappers/bcda++" "$BCDAXX" "" \
