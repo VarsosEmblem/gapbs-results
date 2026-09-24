@@ -1,0 +1,24 @@
+INFO: Setting log level to -1
+	-HBW int call succeeded
+Read Time:           3.86550
+Graph has 67108864 nodes and 1051923236 undirected edges for degree: 15
+Trial Time:          0.12581
+Trial Time:          0.09532
+Trial Time:          0.09721
+Trial Time:          0.09754
+Trial Time:          0.09552
+Trial Time:          0.09532
+Trial Time:          0.09629
+Trial Time:          0.09825
+Trial Time:          0.09693
+Trial Time:          0.10548
+Trial Time:          0.09443
+Trial Time:          0.09312
+Trial Time:          0.09616
+Trial Time:          0.09617
+Trial Time:          0.09590
+Trial Time:          0.10264
+Average Time:        0.09888
+real 5.63
+user 182.69
+sys 6.46
