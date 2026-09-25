@@ -14,6 +14,8 @@
 #   clang-hbm-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=2)
 #   clang-glibc       + system malloc      (clang-plain; glibc malloc, no LD_PRELOAD)
 #
+# ddr-only, happy, happy-mod, bcda, and autohbw run under numactl --membind 0-7.
+#
 # Counters come from `perf stat` around the whole process (graph load,
 # construction, kernel trials, and verification), not GAPBS Average Time.
 #   cycles                         cpu cycles
@@ -78,6 +80,9 @@ if [[ " $TAGS " == *" ddr-only "* ]]; then
 fi
 if [[ " $TAGS " == *" hbm-only "* ]]; then
   [[ -e "$HBM_ONLY_PRELOAD" ]] || die "missing $HBM_ONLY_PRELOAD"
+fi
+if [[ " $TAGS " == *" ddr-only "* || " $TAGS " == *" happy "* || " $TAGS " == *" happy-mod "* || " $TAGS " == *" bcda "* || " $TAGS " == *" autohbw "* ]]; then
+  command -v numactl >/dev/null || die "numactl is required for ddr-only, happy, happy-mod, bcda, and autohbw"
 fi
 
 parse_graph() {
@@ -209,7 +214,13 @@ run_one() {
       run_env+=(MALLOC_CONF="tcache:false")
       ;;
   esac
-  { perf stat -x, -e "$PERF_EVENTS" -- "${run_env[@]}" "$bin" "${args[@]}"; } >"$log" 2>&1 || true
+  local -a launch=("${run_env[@]}")
+  case "$tag" in
+    ddr-only|happy|happy-mod|bcda|autohbw)
+      launch=(numactl --membind 0-7 "${run_env[@]}")
+      ;;
+  esac
+  { perf stat -x, -e "$PERF_EVENTS" -- "${launch[@]}" "$bin" "${args[@]}"; } >"$log" 2>&1 || true
   local counters status
   counters=$(parse_perf "$log")
   status=$(crash_note "$log")

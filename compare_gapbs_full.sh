@@ -14,6 +14,8 @@
 #   clang-hbm-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=2)
 #   clang-glibc       + system malloc      (clang-plain; glibc malloc, no LD_PRELOAD)
 #
+# ddr-only, happy, happy-mod, bcda, and autohbw run under numactl --membind 0-7.
+#
 # Times are the wall-clock `real` seconds from `time -p` for the whole process:
 # graph load, construction, kernel trials, and verification. This is not the
 # GAPBS "Average Time" recorded by compare_gapbs.sh.
@@ -74,6 +76,9 @@ if [[ " $TAGS " == *" ddr-only "* ]]; then
 fi
 if [[ " $TAGS " == *" hbm-only "* ]]; then
   [[ -e "$HBM_ONLY_PRELOAD" ]] || die "missing $HBM_ONLY_PRELOAD"
+fi
+if [[ " $TAGS " == *" ddr-only "* || " $TAGS " == *" happy "* || " $TAGS " == *" happy-mod "* || " $TAGS " == *" bcda "* || " $TAGS " == *" autohbw "* ]]; then
+  command -v numactl >/dev/null || die "numactl is required for ddr-only, happy, happy-mod, bcda, and autohbw"
 fi
 
 parse_graph() {
@@ -175,7 +180,13 @@ run_one() {
       run_env+=(MALLOC_CONF="tcache:false")
       ;;
   esac
-  { time -p "${run_env[@]}" "$bin" "${args[@]}"; } >"$log" 2>&1 || true
+  local -a launch=("${run_env[@]}")
+  case "$tag" in
+    ddr-only|happy|happy-mod|bcda|autohbw)
+      launch=(numactl --membind 0-7 "${run_env[@]}")
+      ;;
+  esac
+  { time -p "${launch[@]}" "$bin" "${args[@]}"; } >"$log" 2>&1 || true
   local secs status
   secs=$(parse_wall "$log")
   status=$(crash_note "$log")
