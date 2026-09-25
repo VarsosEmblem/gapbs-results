@@ -2,6 +2,8 @@
 # Build GAPBS and install into $RESULTS_DIR/bin/<tag>/.
 #
 #   plain       clang-plain++        + jemalloc-og        (baseline)
+#   plain-no-tcache is not a separate build. The compare scripts run the plain
+#   binary with MALLOC_CONF=tcache:false.
 #   plainje     clang-plain++        + jemalloc           (chonk no analysis)
 #   chonk       clang-chonky++       + jemalloc           (chonk)
 #   chonk-early clang-chonky-early++ + jemalloc           (modified analysis)

@@ -2,6 +2,7 @@
 # Interleaved GAPBS comparison across the CHONK configs.
 #
 #   clang-plain       + jemalloc-og        (baseline)
+#   clang-plain-no-tcache + jemalloc-og    (same binary as plain; MALLOC_CONF=tcache:false)
 #   clang-plainje     + jemalloc           (chonk no analysis)
 #   clang-chonk       + jemalloc           (chonk)
 #   clang-chonk-early + jemalloc           (modified analysis)
@@ -36,8 +37,8 @@ NTHREADS="${NTHREADS:-16}"
 WARMUP="${WARMUP:-1}"
 RUNS="${RUNS:-5}"
 START="${START:-1}"
-CONFIGS="${CONFIGS:-clang-plain clang-plainje clang-chonk clang-chonk-early clang-happy clang-bcda clang-autohbw clang-ddr-only clang-hbm-only clang-glibc}"
-TAGS="${TAGS:-plain plainje chonk chonk-early happy bcda autohbw ddr-only hbm-only glibc}"
+CONFIGS="${CONFIGS:-clang-plain clang-plain-no-tcache clang-plainje clang-chonk clang-chonk-early clang-happy clang-bcda clang-autohbw clang-ddr-only clang-hbm-only clang-glibc}"
+TAGS="${TAGS:-plain plain-no-tcache plainje chonk chonk-early happy bcda autohbw ddr-only hbm-only glibc}"
 GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
 HAPPY_PRELOAD="${HAPPY_PRELOAD:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
 BCDA_PRELOAD="${BCDA_PRELOAD:-$HAPPY_PRELOAD}"
@@ -177,7 +178,10 @@ crash_note() {
 
 run_one() {
   local config="$1" kernel="$2" graph="$3" tag="$4" log="$5" run="$6"
-  local bin="$RESULTS_DIR/bin/$tag/$kernel"
+  # plain-no-tcache is the plain binary with jemalloc tcache disabled.
+  local bin_tag="$tag"
+  [[ "$tag" == "plain-no-tcache" ]] && bin_tag="plain"
+  local bin="$RESULTS_DIR/bin/$bin_tag/$kernel"
   [[ -x "$bin" ]] || die "missing $bin; run ./build_gapbs.sh"
   local -a args
   read -r -a args <<<"$(kernel_args "$kernel" "$graph")"
@@ -199,6 +203,9 @@ run_one() {
       ;;
     hbm-only)
       run_env+=(LD_PRELOAD="$HBM_ONLY_PRELOAD" AUTO_HBW_SIZE="$HBM_ONLY_HBW_SIZE")
+      ;;
+    plain-no-tcache)
+      run_env+=(MALLOC_CONF="tcache:false")
       ;;
   esac
   { perf stat -x, -e "$PERF_EVENTS" -- "${run_env[@]}" "$bin" "${args[@]}"; } >"$log" 2>&1 || true
