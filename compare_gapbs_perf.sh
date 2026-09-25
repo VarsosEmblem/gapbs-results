@@ -7,6 +7,7 @@
 #   clang-chonk       + jemalloc           (chonk)
 #   clang-chonk-early + jemalloc           (modified analysis)
 #   clang-happy       + system malloc      (different analysis; LD_PRELOAD libautohbw)
+#   clang-happy-mod   + system malloc      (same runtime as happy; built with HAPPY_MODXX)
 #   clang-bcda        + system malloc      (placeholder compiler, -lautohbw; LD_PRELOAD happy's libautohbw)
 #   clang-autohbw     + system malloc      (clang-plain; LD_PRELOAD libautohbw)
 #   clang-ddr-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=150G)
@@ -37,8 +38,8 @@ NTHREADS="${NTHREADS:-16}"
 WARMUP="${WARMUP:-1}"
 RUNS="${RUNS:-5}"
 START="${START:-1}"
-CONFIGS="${CONFIGS:-clang-plain clang-plain-no-tcache clang-plainje clang-chonk clang-chonk-early clang-happy clang-bcda clang-autohbw clang-ddr-only clang-hbm-only clang-glibc}"
-TAGS="${TAGS:-plain plain-no-tcache plainje chonk chonk-early happy bcda autohbw ddr-only hbm-only glibc}"
+CONFIGS="${CONFIGS:-clang-plain clang-plain-no-tcache clang-plainje clang-chonk clang-chonk-early clang-happy clang-happy-mod clang-bcda clang-autohbw clang-ddr-only clang-hbm-only clang-glibc}"
+TAGS="${TAGS:-plain plain-no-tcache plainje chonk chonk-early happy happy-mod bcda autohbw ddr-only hbm-only glibc}"
 GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
 HAPPY_PRELOAD="${HAPPY_PRELOAD:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
 BCDA_PRELOAD="${BCDA_PRELOAD:-$HAPPY_PRELOAD}"
@@ -63,7 +64,7 @@ die() { echo "error: $*" >&2; exit 1; }
 
 command -v perf >/dev/null || die "perf is not installed"
 
-if [[ " $TAGS " == *" happy "* ]]; then
+if [[ " $TAGS " == *" happy "* || " $TAGS " == *" happy-mod "* ]]; then
   [[ -e "$HAPPY_PRELOAD" ]] || die "missing $HAPPY_PRELOAD"
 fi
 if [[ " $TAGS " == *" bcda "* ]]; then
@@ -190,12 +191,12 @@ run_one() {
   # Clear autohbw vars first so they cannot leak in from the parent environment.
   local -a run_env=(env -u LD_PRELOAD -u AUTO_HBW_LOG -u AUTO_HBW_SIZE)
   case "$tag" in
-    happy|bcda|autohbw|ddr-only|hbm-only)
+    happy|happy-mod|bcda|autohbw|ddr-only|hbm-only)
       run_env+=(AUTO_HBW_LOG=-1)
       ;;
   esac
   case "$tag" in
-    happy) run_env+=(LD_PRELOAD="$HAPPY_PRELOAD") ;;
+    happy|happy-mod) run_env+=(LD_PRELOAD="$HAPPY_PRELOAD") ;;
     bcda) run_env+=(LD_PRELOAD="$BCDA_PRELOAD") ;;
     autohbw) run_env+=(LD_PRELOAD="$AUTOHBW_PRELOAD") ;;
     ddr-only)

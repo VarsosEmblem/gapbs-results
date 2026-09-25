@@ -9,14 +9,15 @@
 #   chonk-early clang-chonky-early++ + jemalloc           (modified analysis)
 #   chonk-scoped CHONK_SCOPEDXX      + jemalloc           (cset_assign only in timed kernels)
 #   happy       happy clang++        + system malloc      (different analysis, -lautohbw)
+#   happy-mod   HAPPY_MODXX          + system malloc      (same link as happy; placeholder compiler)
 #   bcda        bcda clang++         + system malloc      (placeholder compiler, -lautohbw)
 #   autohbw     clang-plain++        + system malloc
 #   ddr-only    clang-plain++        + system malloc      (same link as autohbw)
 #   hbm-only    clang-plain++        + system malloc      (same link as ddr-only)
 #   glibc       clang-plain++        + system malloc      (glibc malloc, no preload)
 #
-# happy, bcda, autohbw, ddr-only, hbm-only, and glibc do not link jemalloc.
-# compare_gapbs.sh LD_PRELOADs libautohbw.so for happy, bcda, autohbw,
+# happy, happy-mod, bcda, autohbw, ddr-only, hbm-only, and glibc do not link jemalloc.
+# compare_gapbs.sh LD_PRELOADs libautohbw.so for happy, happy-mod, bcda, autohbw,
 # ddr-only, and hbm-only. glibc is the default system allocator.
 # bcda preloads the same library as happy. Set BCDAXX to the bcda clang++.
 # ddr-only sets AUTO_HBW_SIZE=150G so allocations stay on DDR.
@@ -28,6 +29,7 @@
 #   CHONK_EARLYXX=/path/to/clang++ ./build_gapbs.sh # set placeholder path
 #   CHONK_SCOPEDXX=/path/to/clang++ ./build_gapbs.sh # chonk clang++ with -coaccess-roots
 #   HAPPYXX=/path/to/clang++ ./build_gapbs.sh
+#   HAPPY_MODXX=/path/to/clang++ ./build_gapbs.sh
 #   BCDAXX=/path/to/clang++ ./build_gapbs.sh
 #   GENERATE_GRAPHS=1 ./build_gapbs.sh               # also write default .sg/.wsg files
 set -euo pipefail
@@ -41,7 +43,7 @@ JEMALLOC_OG="${JEMALLOC_OG:-$HOME/jemalloc-5.3.0}"
 JEMALLOC="${JEMALLOC:-$HOME/jemalloc}"
 # Clang 19 has no matching libomp in llvm-19-build; PARSEC uses libgomp.
 OPENMP="${OPENMP:-libgomp}"
-TAGS="${TAGS:-plain plainje chonk chonk-early chonk-scoped happy bcda autohbw ddr-only hbm-only glibc}"
+TAGS="${TAGS:-plain plainje chonk chonk-early chonk-scoped happy happy-mod bcda autohbw ddr-only hbm-only glibc}"
 JOBS="${JOBS:-$(nproc)}"
 SUITE="${SUITE:-bc bfs cc cc_sv pr pr_spmv sssp tc converter}"
 GRAPHS="${GRAPHS:-kron22 urand22}"
@@ -53,6 +55,8 @@ CHONK_EARLYXX="$LLVM_DIR/bin/clang-chonky-early++"
 # Placeholder until the scoped compiler is installed on the build machine.
 CHONK_SCOPEDXX="$LLVM_DIR/bin/clang-chonky-scoped++"
 HAPPYXX="$LLVM_DIR/bin/clang-happy++"
+# Placeholder until the modified happy compiler is installed on the build machine.
+HAPPY_MODXX="${HAPPY_MODXX:-$LLVM_DIR/bin/clang-happy-mod++}"
 BCDAXX="$LLVM_DIR/bin/clang-bcda++"
 HAPPY_AUTOHBW_SO="${HAPPY_AUTOHBW_SO:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
 HAPPY_AUTOHBW_LIBDIR="$(dirname "$HAPPY_AUTOHBW_SO")"
@@ -70,6 +74,10 @@ if [[ " $TAGS " == *" chonk-scoped "* ]]; then
 fi
 if [[ " $TAGS " == *" happy "* ]]; then
   [[ -x "$HAPPYXX" ]] || die "missing $HAPPYXX (set HAPPYXX to the happy clang++)"
+  [[ -e "$HAPPY_AUTOHBW_SO" ]] || die "missing $HAPPY_AUTOHBW_SO"
+fi
+if [[ " $TAGS " == *" happy-mod "* ]]; then
+  [[ -x "$HAPPY_MODXX" ]] || die "missing $HAPPY_MODXX (set HAPPY_MODXX to the happy-mod clang++)"
   [[ -e "$HAPPY_AUTOHBW_SO" ]] || die "missing $HAPPY_AUTOHBW_SO"
 fi
 if [[ " $TAGS " == *" bcda "* ]]; then
@@ -122,6 +130,8 @@ write_wrapper "$RESULTS_DIR/wrappers/chonk-scoped++" "$CHONK_SCOPEDXX" "$JEMALLO
   -mllvm -coaccess-stats \
   -mllvm -coaccess-roots=DOBFS,DeltaStep,Brandes,PageRankPullGS,PageRankPull,Afforest,ShiloachVishkin,Hybrid
 write_wrapper "$RESULTS_DIR/wrappers/happy++" "$HAPPYXX" "" \
+  "-L$HAPPY_AUTOHBW_LIBDIR -lautohbw -Wl,-rpath,$HAPPY_AUTOHBW_LIBDIR"
+write_wrapper "$RESULTS_DIR/wrappers/happy-mod++" "$HAPPY_MODXX" "" \
   "-L$HAPPY_AUTOHBW_LIBDIR -lautohbw -Wl,-rpath,$HAPPY_AUTOHBW_LIBDIR"
 write_wrapper "$RESULTS_DIR/wrappers/bcda++" "$BCDAXX" "" \
   "-L$HAPPY_AUTOHBW_LIBDIR -lautohbw -Wl,-rpath,$HAPPY_AUTOHBW_LIBDIR"
