@@ -8,13 +8,18 @@
 #   clang-chonk-early + jemalloc           (modified analysis)
 #   clang-happy       + system malloc      (different analysis; LD_PRELOAD libautohbw)
 #   clang-happy-mod   + system malloc      (same runtime as happy; built with HAPPY_MODXX)
+#   clang-happy-src   + system malloc      (~/gapbs-happy with manual happyPriority; LD_PRELOAD libautohbw)
 #   clang-bcda        + system malloc      (placeholder compiler, -lautohbw; LD_PRELOAD happy's libautohbw)
 #   clang-autohbw     + system malloc      (clang-plain; LD_PRELOAD libautohbw)
 #   clang-ddr-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=150G)
 #   clang-hbm-only    + system malloc      (clang-plain; LD_PRELOAD libautohbw, AUTO_HBW_SIZE=2)
 #   clang-glibc       + system malloc      (clang-plain; glibc malloc, no LD_PRELOAD)
+#   clang-modmalloc   + modular-malloc     (same binary as glibc; LD_PRELOAD libmodmalloc.so)
+#   clang-mimalloc    + mimalloc           (clang-plain; linked ~/mimalloc/out/release)
 #
 # ddr-only, happy, happy-mod, bcda, and autohbw run under numactl --membind 0-7.
+# modmalloc is not a separate build; TAGS=glibc ./build_gapbs.sh first.
+# mimalloc is its own build: TAGS=mimalloc ./build_gapbs.sh.
 #
 # Counters come from `perf stat` around the whole process (graph load,
 # construction, kernel trials, and verification), not GAPBS Average Time.
@@ -34,20 +39,17 @@ set -euo pipefail
 GAPBS_DIR="${GAPBS_DIR:-$HOME/gapbs}"
 RESULTS_DIR="${RESULTS_DIR:-$HOME/gapbs-results}"
 MACHINE="${MACHINE:-h0}"
+# shellcheck source=machine_env.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/machine_env.sh"
 GRAPHS="${GRAPHS:-kron22 urand22}"
 KERNELS="${KERNELS:-bfs cc pr bc sssp tc}"
 NTHREADS="${NTHREADS:-16}"
 WARMUP="${WARMUP:-1}"
 RUNS="${RUNS:-5}"
 START="${START:-1}"
-CONFIGS="${CONFIGS:-clang-plain clang-plain-no-tcache clang-plainje clang-chonk clang-chonk-early clang-happy clang-happy-mod clang-bcda clang-autohbw clang-ddr-only clang-hbm-only clang-glibc}"
-TAGS="${TAGS:-plain plain-no-tcache plainje chonk chonk-early happy happy-mod bcda autohbw ddr-only hbm-only glibc}"
+CONFIGS="${CONFIGS:-clang-plain clang-plain-no-tcache clang-plainje clang-chonk clang-chonk-early clang-happy clang-happy-mod clang-happy-src clang-bcda clang-autohbw clang-ddr-only clang-hbm-only clang-glibc clang-modmalloc clang-mimalloc}"
+TAGS="${TAGS:-plain plain-no-tcache plainje chonk chonk-early happy happy-mod happy-src bcda autohbw ddr-only hbm-only glibc modmalloc mimalloc}"
 GRAPH_DIR="${GRAPH_DIR:-$RESULTS_DIR/graphs}"
-HAPPY_PRELOAD="${HAPPY_PRELOAD:-/vast/home/vchoung/memkind/autohbw/.libs/libautohbw.so}"
-BCDA_PRELOAD="${BCDA_PRELOAD:-$HAPPY_PRELOAD}"
-AUTOHBW_PRELOAD="${AUTOHBW_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
-DDR_ONLY_PRELOAD="${DDR_ONLY_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
-HBM_ONLY_PRELOAD="${HBM_ONLY_PRELOAD:-/vast/home/vchoung/memkind-og/autohbw/.libs/libautohbw.so}"
 # Larger than any single GAPBS allocation, so autohbw leaves every malloc on DDR.
 DDR_ONLY_HBW_SIZE="${DDR_ONLY_HBW_SIZE:-150G}"
 # Smaller than any real GAPBS allocation, so those mallocs go to HBM.
@@ -66,7 +68,7 @@ die() { echo "error: $*" >&2; exit 1; }
 
 command -v perf >/dev/null || die "perf is not installed"
 
-if [[ " $TAGS " == *" happy "* || " $TAGS " == *" happy-mod "* ]]; then
+if [[ " $TAGS " == *" happy "* || " $TAGS " == *" happy-mod "* || " $TAGS " == *" happy-src "* ]]; then
   [[ -e "$HAPPY_PRELOAD" ]] || die "missing $HAPPY_PRELOAD"
 fi
 if [[ " $TAGS " == *" bcda "* ]]; then
@@ -81,9 +83,21 @@ fi
 if [[ " $TAGS " == *" hbm-only "* ]]; then
   [[ -e "$HBM_ONLY_PRELOAD" ]] || die "missing $HBM_ONLY_PRELOAD"
 fi
-if [[ " $TAGS " == *" ddr-only "* || " $TAGS " == *" happy "* || " $TAGS " == *" happy-mod "* || " $TAGS " == *" bcda "* || " $TAGS " == *" autohbw "* ]]; then
-  command -v numactl >/dev/null || die "numactl is required for ddr-only, happy, happy-mod, bcda, and autohbw"
+if [[ " $TAGS " == *" modmalloc "* ]]; then
+  [[ -e "$MODMALLOC_PRELOAD" ]] || die "missing $MODMALLOC_PRELOAD"
 fi
+if [[ " $TAGS " == *" ddr-only "* || " $TAGS " == *" happy "* || " $TAGS " == *" happy-mod "* || " $TAGS " == *" happy-src "* || " $TAGS " == *" bcda "* || " $TAGS " == *" autohbw "* ]]; then
+  command -v numactl >/dev/null || die "numactl is required for ddr-only, happy, happy-mod, happy-src, bcda, and autohbw"
+fi
+
+# plain-no-tcache / modmalloc reuse another tag's binaries.
+bin_tag_for() {
+  case "$1" in
+    plain-no-tcache) echo plain ;;
+    modmalloc) echo glibc ;;
+    *) echo "$1" ;;
+  esac
+}
 
 parse_graph() {
   local g="$1"
@@ -95,10 +109,11 @@ parse_graph() {
 }
 
 ensure_graphs() {
-  local conv="" tag
+  local conv="" tag bin_tag
   for tag in "${TAG_ARR[@]}"; do
-    if [[ -x "$RESULTS_DIR/bin/$tag/converter" ]]; then
-      conv="$RESULTS_DIR/bin/$tag/converter"
+    bin_tag="$(bin_tag_for "$tag")"
+    if [[ -x "$RESULTS_DIR/bin/$bin_tag/converter" ]]; then
+      conv="$RESULTS_DIR/bin/$bin_tag/converter"
       break
     fi
   done
@@ -184,9 +199,9 @@ crash_note() {
 
 run_one() {
   local config="$1" kernel="$2" graph="$3" tag="$4" log="$5" run="$6"
-  # plain-no-tcache is the plain binary with jemalloc tcache disabled.
-  local bin_tag="$tag"
-  [[ "$tag" == "plain-no-tcache" ]] && bin_tag="plain"
+  # plain-no-tcache / modmalloc reuse another tag's binaries (see bin_tag_for).
+  local bin_tag
+  bin_tag="$(bin_tag_for "$tag")"
   local bin="$RESULTS_DIR/bin/$bin_tag/$kernel"
   [[ -x "$bin" ]] || die "missing $bin; run ./build_gapbs.sh"
   local -a args
@@ -196,12 +211,12 @@ run_one() {
   # Clear autohbw vars first so they cannot leak in from the parent environment.
   local -a run_env=(env -u LD_PRELOAD -u AUTO_HBW_LOG -u AUTO_HBW_SIZE)
   case "$tag" in
-    happy|happy-mod|bcda|autohbw|ddr-only|hbm-only)
+    happy|happy-mod|happy-src|bcda|autohbw|ddr-only|hbm-only)
       run_env+=(AUTO_HBW_LOG=-1)
       ;;
   esac
   case "$tag" in
-    happy|happy-mod) run_env+=(LD_PRELOAD="$HAPPY_PRELOAD") ;;
+    happy|happy-mod|happy-src) run_env+=(LD_PRELOAD="$HAPPY_PRELOAD") ;;
     bcda) run_env+=(LD_PRELOAD="$BCDA_PRELOAD") ;;
     autohbw) run_env+=(LD_PRELOAD="$AUTOHBW_PRELOAD") ;;
     ddr-only)
@@ -210,13 +225,16 @@ run_one() {
     hbm-only)
       run_env+=(LD_PRELOAD="$HBM_ONLY_PRELOAD" AUTO_HBW_SIZE="$HBM_ONLY_HBW_SIZE")
       ;;
+    modmalloc)
+      run_env+=(LD_PRELOAD="$MODMALLOC_PRELOAD")
+      ;;
     plain-no-tcache)
       run_env+=(MALLOC_CONF="tcache:false")
       ;;
   esac
   local -a launch=("${run_env[@]}")
   case "$tag" in
-    ddr-only|happy|happy-mod|bcda|autohbw)
+    ddr-only|happy|happy-mod|happy-src|bcda|autohbw)
       launch=(numactl --membind 0-7 "${run_env[@]}")
       ;;
   esac

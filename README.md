@@ -85,4 +85,6 @@ Then commit and push the new `<kernel>/cn902/` logs and `gapbs.kron22.t16.compar
 | `plot_gapbs.py` | Runtime / speedup / geomean PNGs |
 | `malloc_stats_gapbs.sh` | jemalloc `stats_print` |
 
-Useful knobs: `MACHINE`, `GRAPHS`, `KERNELS`, `NTHREADS`, `RUNS`, `WARMUP`, `START`, `GCC_INSTALL_DIR`, `LLVM_DIR`, `GAPBS_DIR`, `RESULTS_DIR`, `OPENMP=0` (serial).
+Useful knobs: `MACHINE`, `GRAPHS`, `KERNELS`, `NTHREADS`, `RUNS`, `WARMUP`, `START`, `GCC_INSTALL_DIR`, `LLVM_DIR`, `GAPBS_DIR`, `HAPPY_SRC_DIR`, `RESULTS_DIR`, `OPENMP=0` (serial).
+
+`happy-src` (config `clang-happy-src`) builds the manually instrumented tree at `HAPPY_SRC_DIR` (default `~/gapbs-happy`) with `clang-plain++`, links the custom `libautohbw` (`HAPPY_AUTOHBW_SO`, which must provide `happyPriority`), and runs like `happy` under `numactl --membind 0-7`. Build it with `TAGS=happy-src ./build_gapbs.sh`.
