@@ -1,0 +1,24 @@
+HAPPY_INFO: Setting log level to -1
+	-HBW int call succeeded
+Read Time:           0.38671
+Graph has 4194302 nodes and 64155725 undirected edges for degree: 15
+Trial Time:          0.75341
+Trial Time:          0.81944
+Trial Time:          0.76926
+Trial Time:          0.78860
+Trial Time:          0.84914
+Trial Time:          0.97387
+Trial Time:          0.88830
+Trial Time:          1.02546
+Trial Time:          0.90770
+Trial Time:          1.08307
+Trial Time:          0.96663
+Trial Time:          0.97085
+Trial Time:          0.96810
+Trial Time:          0.99689
+Trial Time:          0.94630
+Trial Time:          1.06836
+Average Time:        0.92346
+real 15.51
+user 233.34
+sys 3.11
