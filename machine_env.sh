@@ -42,7 +42,7 @@ case "$MACHINE" in
     : "${MODMALLOC_PRELOAD:=$HOME/modular-malloc/bin/libmodmalloc.so}"
     : "${MIMALLOC:=$HOME/mimalloc}"
     : "${MIMALLOC_LIBDIR:=$MIMALLOC/out/release}"
-    : "${OPENMP:=libgomp}"
+    : "${OPENMP:=libomp}"
     : "${OMP_LIBDIR:=}"
     ;;
   *)
